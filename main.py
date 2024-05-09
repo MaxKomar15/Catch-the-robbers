@@ -27,6 +27,7 @@ bg = image.load("images/road-texture4.png") # завантажуємо карт�
 bg = transform.scale(bg, (WIDTH, HEIGHT)) #змінюємо розмір картинки
 player_img = image.load('images/Police.png')
 enemy_img = image.load('images/Black_viper.png')
+NPC_img = image.load('images/Car.png')
 bg_y1 = 0
 bg_y2 = -HEIGHT
 
@@ -52,7 +53,7 @@ class Player(GameSprite):
         self.start_rect = self.rect
         self.hp = 100
         self.points = 0
-        self.speed = 4
+        self.speed = 5
         self.bg_speed = 0
         self.max_speed = 20
 
@@ -65,7 +66,7 @@ class Player(GameSprite):
             if self.rect.y > 350:
                 self.rect.y -= self.speed
             if self.bg_speed < self.max_speed:
-                self.bg_speed += 0.1 
+                self.bg_speed += 0.2 
         elif keys[K_s] and self.rect.bottom < HEIGHT:
             self.rect.y += self.speed
             self.bg_speed = 1
@@ -80,24 +81,42 @@ class Player(GameSprite):
             self.rect.x += self.speed
 
 
-enemys = sprite.Group()
+NPC_Group = sprite.Group()
 
-class Enemy(GameSprite):
+class NPC(GameSprite):
         def __init__(self):
-            rand_x = randint(0, WIDTH-70)
-            y = -150
-            super().__init__(enemy_img, 100, 70, rand_x, y)
-            self.speed = 5
-            enemys.add(self)
+            rand_x = randint(50, WIDTH-350)
+            y = -500
+            super().__init__(NPC_img, 300, 300, rand_x, y)
+            self.speed = -5
+            if not sprite.spritecollide(self, NPC_Group, False):
+                NPC_Group.add(self)
+            else:
+                self.kill()
 
 
         def update(self):
-            self.rect.y += self.speed
+            global points_text
+            self.rect.y += self.speed + player.bg_speed
             if self.rect.y > HEIGHT:
                 self.kill()
+                player.points += 10
+                points_text = font1.render(F"Points: {player.points}", True, (255, 255, 255))
             
+class Robber(GameSprite):
+        def __init__(self):
+            rand_x = randint(0, WIDTH-70)
+            y = 200
+            super().__init__(enemy_img, 300, 300, rand_x, y)
+            self.speed = 10
+           
+        def update(self):
+            self.rect.y -= self.speed
+            if self.rect.bottom < 0:
+                self.speed = 0
 
 player = Player(player_img, 300, 300, WIDTH/2, HEIGHT-400)
+robber = Robber()
 
 hp_text = font1.render(F"HP: {player.hp}", True, (255, 255, 255))
 points_text = font1.render(F"Points: {player.points}", True, (255, 255, 255))
@@ -105,7 +124,7 @@ finish_text = font2.render("[>GAME OVER<]", True, (255, 0, 0))
 
 finish = False
 last_spawn_time = time.get_ticks()
-spawn_interval = randint(1000, 3000)
+spawn_interval = randint(3000, 5000)
 
 while True:
     #оброби подію «клік за кнопкою "Закрити вікно"
@@ -118,13 +137,16 @@ while True:
 
     if not finish:
         now = time.get_ticks()
-       
-        
-        collide_list = sprite.spritecollide(player, enemys, False, sprite.collide_mask)
+        if now - last_spawn_time > spawn_interval:
+            if len(NPC_Group) < 10:
+                NPC()
+            last_spawn_time = time.get_ticks()
+            spawn_interval = randint(1000, 3000)
+        collide_list = sprite.spritecollide(player, NPC_Group, False, sprite.collide_mask)
         for enemy in collide_list:
-            player.hp -= 50
+            player.hp -= 25
             hp_text = font1.render(F"HP: {player.hp}", True, (255, 255, 255))
-            enemys.remove(enemy)
+            NPC_Group.remove(enemy)
 
         sprites.update()
       
