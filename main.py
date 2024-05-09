@@ -13,7 +13,7 @@ flags = FULLSCREEN
 window = display.set_mode((WIDTH, HEIGHT), flags)
 
 font1 = font.SysFont("Arial", 40)
-font2 = font.SysFont("Arial", 50)
+font2 = font.SysFont("Arial", 65)
 
 # mixer.music.load("space.ogg") 
 # mixer.music.set_volume(0.2)
@@ -26,6 +26,13 @@ clock = time.Clock() # Створюємо ігровий таймер
 bg = image.load("images/road-texture4.png") # завантажуємо картинку в гру
 bg = transform.scale(bg, (WIDTH, HEIGHT)) #змінюємо розмір картинки
 player_img = image.load('images/Police.png')
+player_images = [
+    transform.scale(image.load('images/Police_animation/1.png'), (300, 300)),  
+     transform.scale(image.load('images/Police_animation/2.png'), (300, 300)),  
+      transform.scale(image.load('images/Police_animation/3.png'), (300, 300)),  
+    
+]
+
 enemy_img = image.load('images/Black_viper.png')
 NPC_img = image.load('images/Car.png')
 bg_y1 = 0
@@ -50,6 +57,11 @@ class GameSprite(sprite.Sprite):
 class Player(GameSprite):
     def __init__(self, sprite_image, width, height, x, y):
         super().__init__(sprite_image, width, height, x, y)
+        self.images = player_images
+        self.index = 0
+        self.frame = 0
+        self.max_frame = 20
+
         self.start_rect = self.rect
         self.hp = 100
         self.points = 0
@@ -79,6 +91,15 @@ class Player(GameSprite):
             self.rect.x -= self.speed
         if keys[K_d] and self.rect.right < WIDTH:
             self.rect.x += self.speed
+
+        self.frame += 1
+        if self.frame >= self.max_frame:
+            self.frame = 0
+            self.index += 1
+            if self.index >= len(self.images):
+                self.index = 0
+            
+            self.image = self.images[self.index]
 
 
 NPC_Group = sprite.Group()
@@ -123,6 +144,7 @@ points_text = font1.render(F"Points: {player.points}", True, (255, 255, 255))
 finish_text = font2.render("[>GAME OVER<]", True, (255, 0, 0))
 
 finish = False
+stop_spawn = False
 last_spawn_time = time.get_ticks()
 spawn_interval = randint(3000, 5000)
 
@@ -153,6 +175,19 @@ while True:
         if player.hp <= 0:
             finish = True
 
+        if player.points >= 200:
+            stop_spawn = True
+
+        if stop_spawn and not finish:
+            robber.speed = -5
+            if player.rect.y < robber.rect.y:
+                finish = True
+                finish_text = font2.render("[>You Win<]", True, (0, 255, 0))
+
+        
+
+        
+
         window.blit(bg, (0,bg_y1))
         window.blit(bg, (0,bg_y2))
         bg_y1 += player.bg_speed
@@ -165,6 +200,6 @@ while True:
     window.blit(hp_text, (10, 10))
     window.blit(points_text, (WIDTH-200, 10))
     if finish:
-        window.blit(finish_text, (300, 250))
+        window.blit(finish_text, (WIDTH/2 - 150,  HEIGHT/2))
     display.update()
     clock.tick(FPS)
